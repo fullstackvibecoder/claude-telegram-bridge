@@ -27,7 +27,7 @@ export async function listRemoteRepos(): Promise<GitHubRepo[]> {
 
   while (true) {
     const res = await fetch(
-      `https://api.github.com/users/${owner}/repos?per_page=100&page=${page}&sort=updated`,
+      `https://api.github.com/orgs/${owner}/repos?per_page=100&page=${page}&sort=updated`,
       { headers: { Authorization: `Bearer ${pat}`, 'User-Agent': 'claude-telegram-bridge' } }
     );
 
@@ -49,7 +49,8 @@ export async function cloneRepo(repoName: string): Promise<ProjectEntry> {
   const { pat, owner } = config.github;
   if (!pat || !owner) throw new Error('GITHUB_PAT and GITHUB_OWNER required');
 
-  const cloneUrl = `https://${owner}:${pat}@github.com/${owner}/${repoName}.git`;
+  // Auth uses PAT directly — works regardless of user vs org owner
+  const cloneUrl = `https://x-access-token:${pat}@github.com/${owner}/${repoName}.git`;
   const destPath = join(config.projectsDir, repoName);
 
   execSync(`git clone ${cloneUrl} ${destPath}`, {
@@ -71,8 +72,8 @@ export async function createProject(
   const { pat, owner } = config.github;
   if (!pat || !owner) throw new Error('GITHUB_PAT and GITHUB_OWNER required');
 
-  // Create repo on GitHub
-  const res = await fetch('https://api.github.com/user/repos', {
+  // Create repo on GitHub (use org endpoint for org owners)
+  const res = await fetch(`https://api.github.com/orgs/${owner}/repos`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${pat}`,
